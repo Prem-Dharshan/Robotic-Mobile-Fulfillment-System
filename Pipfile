@@ -6,8 +6,11 @@ name = "pypi"
 [packages]
 black = "*"
 deap = "*"
+pandas = "*"
+scipy = "*"
 
 [dev-packages]
+ipykernel = "*"
 
 [requires]
 python_version = "3.12"
