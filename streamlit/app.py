@@ -7,18 +7,22 @@ import streamlit as st
 
 # Load datasets
 basedir = os.path.abspath(os.path.dirname(__file__))
-orders_df = pd.read_csv(os.path.join(basedir, 'orders.csv'))
-shelves_df = pd.read_csv(os.path.join(basedir, 'shelves.csv'))
-robots_df = pd.read_csv(os.path.join(basedir, 'robots.csv'))
+orders_df = pd.read_csv(os.path.join(basedir, "orders.csv"))
+shelves_df = pd.read_csv(os.path.join(basedir, "shelves.csv"))
+robots_df = pd.read_csv(os.path.join(basedir, "robots.csv"))
 
 # 1. Create a NumPy array for shelf locations
-shelves_locations = shelves_df[['Location_X', 'Location_Y']].to_numpy()
+shelves_locations = shelves_df[["Location_X", "Location_Y"]].to_numpy()
+
 
 # 2. Define the Distance Matrix Function
 def shelf_distance(s1, s2):
     if not (0 <= s1 < len(shelves_locations)) or not (0 <= s2 < len(shelves_locations)):
-        raise IndexError(f"Invalid index: s1={s1}, s2={s2} for shelves_locations with size {len(shelves_locations)}")
+        raise IndexError(
+            f"Invalid index: s1={s1}, s2={s2} for shelves_locations with size {len(shelves_locations)}"
+        )
     return np.linalg.norm(shelves_locations[s1] - shelves_locations[s2])
+
 
 # Create a distance matrix
 num_shelves = len(shelves_locations)
@@ -28,9 +32,12 @@ for i in range(num_shelves):
     for j in range(num_shelves):
         distance_matrix[i][j] = shelf_distance(i, j)
 
+
 # 3. Ant Colony Optimization Class
 class AntColony:
-    def __init__(self, distance_matrix, n_ants, n_best, n_iterations, decay, alpha=1, beta=1):
+    def __init__(
+        self, distance_matrix, n_ants, n_best, n_iterations, decay, alpha=1, beta=1
+    ):
         self.distances = distance_matrix
         self.pheromone = np.ones(self.distances.shape) / len(distance_matrix)
         self.all_inds = range(len(distance_matrix))
@@ -59,15 +66,21 @@ class AntColony:
             for i in range(len(path) - 1):  # Loop through the path
                 move_from = path[i]
                 move_to = path[i + 1]
-                if self.distances[move_from][move_to] > 0:  # Ensure we don't divide by zero
-                    self.pheromone[move_from][move_to] += 1.0 / self.distances[move_from][move_to]
+                if (
+                    self.distances[move_from][move_to] > 0
+                ):  # Ensure we don't divide by zero
+                    self.pheromone[move_from][move_to] += (
+                        1.0 / self.distances[move_from][move_to]
+                    )
                 else:
                     pass
 
     def gen_path_dist(self, path):
         total_dist = 0
         for i in range(len(path) - 1):
-            total_dist += self.distances[path[i]][path[i + 1]]  # Compute distance from current to next
+            total_dist += self.distances[path[i]][
+                path[i + 1]
+            ]  # Compute distance from current to next
         return total_dist
 
     def gen_all_paths(self):
@@ -95,11 +108,13 @@ class AntColony:
         pheromone = np.copy(pheromone)
         pheromone[list(visited)] = 0  # Block visited nodes
         dist = np.where(dist == 0, np.inf, dist)  # Avoid dividing by zero
-        
+
         row = pheromone * self.alpha * ((1.0 / dist) * self.beta)
-        
+
         if np.sum(row) == 0:
-            return np.random.choice(list(set(self.all_inds) - visited))  # Randomly pick unvisited node
+            return np.random.choice(
+                list(set(self.all_inds) - visited)
+            )  # Randomly pick unvisited node
 
         norm_row = row / row.sum()
         move = np.random.choice(list(self.all_inds), p=norm_row)
@@ -109,6 +124,7 @@ class AntColony:
 # 4. Run the Ant Colony Optimization to get the best shelf route
 aco = AntColony(distance_matrix, n_ants=5, n_best=2, n_iterations=100, decay=0.95)
 best_shelf_route = aco.run()
+
 
 # 5. Plotting functions using networkx
 def plot_path_with_shelves(shelves_to_pick, robot_id, order_id):
@@ -120,44 +136,56 @@ def plot_path_with_shelves(shelves_to_pick, robot_id, order_id):
 
     # Add edges for the path the robot travels
     for i in range(len(shelves_to_pick) - 1):
-        G.add_edge(shelves_to_pick[i], shelves_to_pick[i + 1], weight=shelf_distance(shelves_to_pick[i], shelves_to_pick[i + 1]))
+        G.add_edge(
+            shelves_to_pick[i],
+            shelves_to_pick[i + 1],
+            weight=shelf_distance(shelves_to_pick[i], shelves_to_pick[i + 1]),
+        )
 
-    pos = nx.get_node_attributes(G, 'pos')
+    pos = nx.get_node_attributes(G, "pos")
 
     # Plotting the graph
     plt.figure(figsize=(8, 6))
 
     # Draw the shelves
-    nx.draw_networkx_nodes(G, pos, node_color='blue', node_size=300, label="Shelves")
+    nx.draw_networkx_nodes(G, pos, node_color="blue", node_size=300, label="Shelves")
 
     # Draw the path traveled by the robot
-    edges = [(shelves_to_pick[i], shelves_to_pick[i + 1]) for i in range(len(shelves_to_pick) - 1)]
-    nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color='red', width=2)
+    edges = [
+        (shelves_to_pick[i], shelves_to_pick[i + 1])
+        for i in range(len(shelves_to_pick) - 1)
+    ]
+    nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color="red", width=2)
 
     # Draw the labels (shelf IDs)
     nx.draw_networkx_labels(G, pos)
 
     # Title and labels
-    plt.title(f'Robot {robot_id + 1} Path for Order {order_id}')
-    plt.xlabel('Location X')
-    plt.ylabel('Location Y')
+    plt.title(f"Robot {robot_id + 1} Path for Order {order_id}")
+    plt.xlabel("Location X")
+    plt.ylabel("Location Y")
     plt.grid(True)
     st.pyplot(plt)
+
 
 # 6. Display metrics and graphs in Streamlit
 def display_metrics_and_graphs():
     st.title("Robotic Path Visualization and Metrics")
 
     # Select a specific robot and orders to visualize
-    selected_robot_id = st.selectbox("Select Robot ID", robots_df['Robot_ID'].unique())
-    selected_orders = st.multiselect("Select Orders", orders_df['Order_ID'].unique())
+    selected_robot_id = st.selectbox("Select Robot ID", robots_df["Robot_ID"].unique())
+    selected_orders = st.multiselect("Select Orders", orders_df["Order_ID"].unique())
 
     if selected_orders:
         for order_id in selected_orders:
-            order = orders_df[orders_df['Order_ID'] == order_id].iloc[0]
+            order = orders_df[orders_df["Order_ID"] == order_id].iloc[0]
 
             # For visualization, assume each order corresponds to a set of shelves
-            shelves_to_pick = np.random.choice(range(len(shelves_df)), size=min(order['Number_of_Items'], len(shelves_df)), replace=False)
+            shelves_to_pick = np.random.choice(
+                range(len(shelves_df)),
+                size=min(order["Number_of_Items"], len(shelves_df)),
+                replace=False,
+            )
 
             # Plot path with shelves
             plot_path_with_shelves(shelves_to_pick, selected_robot_id, order_id)
@@ -166,15 +194,21 @@ def display_metrics_and_graphs():
     colors = plt.cm.rainbow(np.linspace(0, 1, len(best_shelf_route[0]) - 1))
 
     plt.figure(figsize=(8, 6))
-    plt.bar(range(len(best_shelf_route[0]) - 1),
-            [shelf_distance(best_shelf_route[0][i], best_shelf_route[0][i + 1]) for i in range(len(best_shelf_route[0]) - 1)],
-            color=colors)
+    plt.bar(
+        range(len(best_shelf_route[0]) - 1),
+        [
+            shelf_distance(best_shelf_route[0][i], best_shelf_route[0][i + 1])
+            for i in range(len(best_shelf_route[0]) - 1)
+        ],
+        color=colors,
+    )
 
-    plt.title('Task Completion Times (Robot Scheduling)')
-    plt.xlabel('Task Index')
-    plt.ylabel('Distance')
+    plt.title("Task Completion Times (Robot Scheduling)")
+    plt.xlabel("Task Index")
+    plt.ylabel("Distance")
     plt.grid(True)
     st.pyplot(plt)
+
 
 # Run the Streamlit app
 if __name__ == "__main__":
