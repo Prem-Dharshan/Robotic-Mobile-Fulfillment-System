@@ -5,13 +5,18 @@ import matplotlib.pyplot as plt
 import random as status
 from deap import base, creator, tools, algorithms
 import gym
-from stable_baselines3 import PPO  # DRL model
+from stable_baselines3 import PPO
 from io import StringIO
 
-# Load datasets
-orders_df = pd.read_csv('./orders.csv')
-shelves_df = pd.read_csv('./Shelves.csv')
-robots_df = pd.read_csv('./robots.csv')
+import os
+current_dir = os.path.dirname(os.path.abspath(__file__))
+orders_path = os.path.join(current_dir, 'orders.csv')
+shelves_path = os.path.join(current_dir, 'shelves.csv')
+robots_path = os.path.join(current_dir, 'robots.csv')
+
+orders_df = pd.read_csv(orders_path)
+shelves_df = pd.read_csv(shelves_path)
+robots_df = pd.read_csv(robots_path)
 
 # Ant Colony Optimization Class
 class AntColony:
