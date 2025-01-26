@@ -3,10 +3,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import random as status
-from deap import base, creator, tools, algorithms
 import gym
 from stable_baselines3 import PPO
-from io import StringIO
 
 import os
 current_dir = os.path.dirname(os.path.abspath(__file__))
